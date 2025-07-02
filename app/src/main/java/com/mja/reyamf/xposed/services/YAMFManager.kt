@@ -14,13 +14,11 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.os.Process
 import android.os.SystemClock
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.kyuubiran.ezxhelper.utils.argTypes
 import com.github.kyuubiran.ezxhelper.utils.args
 import com.github.kyuubiran.ezxhelper.utils.invokeMethod
@@ -48,13 +46,9 @@ import com.mja.reyamf.xposed.utils.log
 import com.mja.reyamf.xposed.utils.registerReceiver
 import com.mja.reyamf.xposed.utils.startAuto
 import com.qauxv.ui.CommonContextWrapper
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import rikka.hidden.compat.ActivityManagerApis
 import java.io.ByteArrayOutputStream
 import java.io.File
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 
 object YAMFManager : IYAMFManager.Stub() {
@@ -82,6 +76,8 @@ object YAMFManager : IYAMFManager.Stub() {
     private var openWindowCount = 0
     private val iOpenCountListenerSet = mutableSetOf<IOpenCountListener>()
     lateinit var activityManagerService: Any
+    private val listeners = mutableListOf<TopDisplayId>()
+    var currentDisplayId = 0
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     fun systemReady() {

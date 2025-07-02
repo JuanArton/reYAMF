@@ -38,10 +38,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.WindowManagerHidden
-import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.RelativeLayout
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
@@ -54,12 +51,13 @@ import com.github.kyuubiran.ezxhelper.utils.getObject
 import com.github.kyuubiran.ezxhelper.utils.getObjectAs
 import com.github.kyuubiran.ezxhelper.utils.invokeMethod
 import com.google.android.material.color.MaterialColors
-import com.mja.reyamf.R
 import com.mja.reyamf.common.getAttr
 import com.mja.reyamf.common.onException
 import com.mja.reyamf.common.runMain
-import com.mja.reyamf.databinding.BackgroundViewBinding
+import com.mja.reyamf.databinding.LeftBackGestureOverlayBinding
+import com.mja.reyamf.databinding.RightBackGestureOverlayBinding
 import com.mja.reyamf.databinding.WindowAppBinding
+import kotlinx.coroutines.withContext
 import com.mja.reyamf.xposed.services.YAMFManager
 import com.mja.reyamf.xposed.services.YAMFManager.config
 import com.mja.reyamf.xposed.utils.Instances
@@ -72,7 +70,9 @@ import com.mja.reyamf.xposed.utils.dpToPx
 import com.mja.reyamf.xposed.utils.getActivityInfoCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.floor
 import kotlin.math.pow
@@ -93,7 +93,8 @@ class AppWindow(
     }
 
     lateinit var binding: WindowAppBinding
-    lateinit var bindingBg: BackgroundViewBinding
+    lateinit var bindingLeftBackGesture: LeftBackGestureOverlayBinding
+    lateinit var bindingRightBackGesture: RightBackGestureOverlayBinding
     private lateinit var virtualDisplay: VirtualDisplay
     private val taskStackListener =
         ITaskStackListenerProxy.newInstance(context.classLoader) { args, method ->
@@ -126,6 +127,7 @@ class AppWindow(
     private var orientation = 0
     private var params = WindowManager.LayoutParams()
     private var paramsBg = WindowManager.LayoutParams()
+    private var backGestureJob: Job? = null
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -153,7 +155,8 @@ class AppWindow(
     init {
         runCatching {
             binding = WindowAppBinding.inflate(LayoutInflater.from(context))
-            bindingBg = BackgroundViewBinding.inflate(LayoutInflater.from(context))
+            bindingLeftBackGesture = LeftBackGestureOverlayBinding.inflate(LayoutInflater.from(context))
+            bindingRightBackGesture = RightBackGestureOverlayBinding.inflate(LayoutInflater.from(context))
         }.onException { e ->
             Log.e(TAG, "Failed to create new window, did you reboot?", e)
             TipUtil.showToast("Failed to create new window, did you reboot?")
@@ -217,47 +220,34 @@ class AppWindow(
         }
 
         paramsBg = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
+            20.dpToPx().toInt(),
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
-                    WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         )
         paramsBg.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
 
-        bindingBg.root.let {
-            Instances.windowManager.addView(bindingBg.root, paramsBg)
-            binding.viewBackGestureBuffer.setOnTouchListener(surfaceOnTouchListener)
-            binding.viewBackGestureBuffer.setOnGenericMotionListener(surfaceOnGenericMotionListener)
+        bindingLeftBackGesture.root.let {
+            paramsBg.gravity = Gravity.START or Gravity.TOP
+            Instances.windowManager.addView(bindingLeftBackGesture.root, paramsBg)
+        }
+
+        bindingRightBackGesture.root.let {
+            val paramsBgR = WindowManager.LayoutParams(
+                20.dpToPx().toInt(),
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            )
+            paramsBgR.gravity = Gravity.END or Gravity.TOP
+            Instances.windowManager.addView(bindingRightBackGesture.root, paramsBgR)
         }
 
         binding.root.let { layout ->
             Instances.windowManager.addView(layout, params)
         }
-
-        bindingBg.root.setOnClickListener {
-            bindingBg.root.visibility = View.GONE
-            binding.viewBackGestureBuffer.visibility = View.VISIBLE
-        }
-
-        binding.viewBackGestureBuffer.setOnTouchListener(object : View.OnTouchListener {
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                when (event?.action) {
-                    MotionEvent.ACTION_UP -> {
-                        bindingBg.root.visibility = View.VISIBLE
-                        binding.viewBackGestureBuffer.visibility = View.GONE
-                    }
-                    else -> return false
-                }
-                return true
-            }
-        })
 
         binding.rootClickMask.setOnTouchListener { _, event ->
             moveGestureDetector.onTouchEvent(event)
@@ -501,16 +491,42 @@ class AppWindow(
                 isResize = true
             }
         }
+
+        //TODO: Find me a better alternative for less resource usage instead of polling
+        backGestureJob = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                if (isMini || isCollapsed) {
+                    withContext(Dispatchers.Main) {
+                        bindingLeftBackGesture.root.visibility = View.GONE
+                        bindingRightBackGesture.root.visibility = View.GONE
+                    }
+                } else if (displayId == YAMFManager.currentDisplayId) {
+                    withContext(Dispatchers.Main) {
+                        bindingLeftBackGesture.root.visibility = View.VISIBLE
+                        bindingRightBackGesture.root.visibility = View.VISIBLE
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        bindingLeftBackGesture.root.visibility = View.GONE
+                        bindingRightBackGesture.root.visibility = View.GONE
+                    }
+                }
+                delay(500)
+            }
+        }
     }
 
     private fun onDestroy() {
+        backGestureJob?.cancel()
+        backGestureJob = null
         context.unregisterReceiver(broadcastReceiver)
         Instances.iWindowManager.removeRotationWatcher(rotationWatcher)
         Instances.activityTaskManager.unregisterTaskStackListener(taskStackListener)
         YAMFManager.removeWindow(displayId)
         virtualDisplay.release()
         Instances.windowManager.removeView(binding.root)
-        Instances.windowManager.removeView(bindingBg.root)
+        Instances.windowManager.removeView(bindingLeftBackGesture.root)
+        Instances.windowManager.removeView(bindingRightBackGesture.root)
     }
 
     private fun getTopRootTask(): ActivityTaskManager.RootTaskInfo? {
@@ -522,9 +538,10 @@ class AppWindow(
     }
 
     private fun moveToTop() {
-        Instances.windowManager.removeView(bindingBg.root)
-        Instances.windowManager.addView(bindingBg.root, bindingBg.root.layoutParams)
-        binding.viewBackGestureBuffer.visibility = View.GONE
+        Instances.windowManager.removeView(bindingLeftBackGesture.root)
+        Instances.windowManager.removeView(bindingRightBackGesture.root)
+        Instances.windowManager.addView(bindingLeftBackGesture.root, bindingLeftBackGesture.root.layoutParams)
+        Instances.windowManager.addView(bindingRightBackGesture.root, bindingRightBackGesture.root.layoutParams)
 
         Instances.windowManager.removeView(binding.root)
         Instances.windowManager.addView(binding.root, binding.root.layoutParams)
@@ -612,6 +629,7 @@ class AppWindow(
     fun onTaskMovedToFront(taskInfo: ActivityManager.RunningTaskInfo) {
         if (taskInfo.getObject("displayId") == displayId) {
             updateTask(taskInfo)
+            Log.d("test2", taskInfo.toString())
         }
     }
 
@@ -729,8 +747,8 @@ class AppWindow(
                 ){
                     setBackgroundWrapContent()
                     setParrentWrapContent()
-                    bindingBg.root.visibility = View.VISIBLE
-                    binding.viewBackGestureBuffer.visibility = View.GONE
+                    bindingLeftBackGesture.root.visibility = View.VISIBLE
+                    bindingRightBackGesture.root.visibility = View.VISIBLE
                 }
             }
 
@@ -766,7 +784,8 @@ class AppWindow(
                     context
                 ){
                     isResize = true
-                    bindingBg.root.visibility = View.GONE
+                    bindingLeftBackGesture.root.visibility = View.GONE
+                    bindingRightBackGesture.root.visibility = View.GONE
                 }
             }
 
@@ -798,14 +817,15 @@ class AppWindow(
         if (isCollapsed) {
             binding.rootClickMask.visibility = View.GONE
             expandWindow()
-            bindingBg.root.visibility = View.VISIBLE
-            binding.viewBackGestureBuffer.visibility = View.GONE
+            bindingLeftBackGesture.root.visibility = View.VISIBLE
+            bindingRightBackGesture.root.visibility = View.VISIBLE
         } else {
             binding.rootClickMask.visibility = View.VISIBLE
             binding.rlBarControllerBottom.visibility = View.GONE
             binding.rlBarControllerSide.visibility = View.GONE
             collapseWindow()
-            bindingBg.root.visibility = View.GONE
+            bindingLeftBackGesture.root.visibility = View.GONE
+            bindingRightBackGesture.root.visibility = View.GONE
         }
     }
 
@@ -936,8 +956,8 @@ class AppWindow(
 
     inner class SurfaceOnTouchListener : View.OnTouchListener {
         override fun onTouch(v: View, event: MotionEvent): Boolean {
-            bindingBg.root.visibility = View.VISIBLE
-            binding.viewBackGestureBuffer.visibility = View.GONE
+            bindingLeftBackGesture.root.visibility = View.VISIBLE
+            bindingRightBackGesture.root.visibility = View.VISIBLE
             forwardMotionEvent(event)
             moveToTopIfNeed(event)
             return true
@@ -946,8 +966,9 @@ class AppWindow(
 
     inner class SurfaceOnGenericMotionListener : View.OnGenericMotionListener {
         override fun onGenericMotion(v: View, event: MotionEvent): Boolean {
-            bindingBg.root.visibility = View.VISIBLE
-            binding.viewBackGestureBuffer.visibility = View.GONE
+            bindingLeftBackGesture.root.visibility = View.VISIBLE
+            bindingRightBackGesture.root.visibility = View.VISIBLE
+//            binding.viewBackGestureBuffer.visibility = View.GONE
             forwardMotionEvent(event)
             return true
         }
