@@ -233,6 +233,8 @@ class AppWindow(
 
         bindingBg.root.let {
             Instances.windowManager.addView(bindingBg.root, paramsBg)
+            binding.viewBackGestureBuffer.setOnTouchListener(surfaceOnTouchListener)
+            binding.viewBackGestureBuffer.setOnGenericMotionListener(surfaceOnGenericMotionListener)
         }
 
         binding.root.let { layout ->
@@ -244,24 +246,18 @@ class AppWindow(
             binding.viewBackGestureBuffer.visibility = View.VISIBLE
         }
 
-//        binding.viewBackGestureBuffer.setOnTouchListener(object : View.OnTouchListener {
-//            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-//                when (event?.action) {
-//                    MotionEvent.ACTION_DOWN -> {
-//                        bindingBg.root.visibility = View.VISIBLE
-//                        binding.viewBackGestureBuffer.visibility = View.GONE
-//                    }
-//                    else -> return false
-//                }
-//                return true
-//            }
-//        })
-
-        binding.viewBackGestureBuffer.setOnClickListener {
-            bindingBg.root.visibility = View.VISIBLE
-            this.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
-            binding.viewBackGestureBuffer.visibility = View.GONE
-        }
+        binding.viewBackGestureBuffer.setOnTouchListener(object : View.OnTouchListener {
+            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+                when (event?.action) {
+                    MotionEvent.ACTION_UP -> {
+                        bindingBg.root.visibility = View.VISIBLE
+                        binding.viewBackGestureBuffer.visibility = View.GONE
+                    }
+                    else -> return false
+                }
+                return true
+            }
+        })
 
         binding.rootClickMask.setOnTouchListener { _, event ->
             moveGestureDetector.onTouchEvent(event)
@@ -940,6 +936,8 @@ class AppWindow(
 
     inner class SurfaceOnTouchListener : View.OnTouchListener {
         override fun onTouch(v: View, event: MotionEvent): Boolean {
+            bindingBg.root.visibility = View.VISIBLE
+            binding.viewBackGestureBuffer.visibility = View.GONE
             forwardMotionEvent(event)
             moveToTopIfNeed(event)
             return true
@@ -948,6 +946,8 @@ class AppWindow(
 
     inner class SurfaceOnGenericMotionListener : View.OnGenericMotionListener {
         override fun onGenericMotion(v: View, event: MotionEvent): Boolean {
+            bindingBg.root.visibility = View.VISIBLE
+            binding.viewBackGestureBuffer.visibility = View.GONE
             forwardMotionEvent(event)
             return true
         }
