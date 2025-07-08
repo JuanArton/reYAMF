@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 1,
-      "versionName": "0.9.8-git.eb9488c-dirty",
+      "versionCode": 2,
+      "versionName": "1.1.1-git.c3a5e7d-dirty",
       "outputFile": "app-release.apk"
     }
   ],

@@ -11,7 +11,7 @@ plugins {
 
 android {
     val buildTime = System.currentTimeMillis()
-    val baseVersionName = "0.9.8"
+    val baseVersionName = "1.1.1"
     namespace = "com.mja.reyamf"
     compileSdk = 36
 
@@ -19,7 +19,7 @@ android {
         applicationId = "com.mja.reyamf"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "$baseVersionName-git.$gitHash${if (isDirty) "-dirty" else ""}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

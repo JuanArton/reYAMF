@@ -112,7 +112,6 @@ class SidebarService : Service() {
             Surface.ROTATION_0, Surface.ROTATION_180 -> {
                 orientation = 0
                 config.portraitY
-                Log.d("posY", config.portraitY.toString())
             }
             Surface.ROTATION_90, Surface.ROTATION_270 -> {
                 orientation = 1

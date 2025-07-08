@@ -15,6 +15,9 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.IPackageManagerHidden
 import android.content.res.Resources
+import android.graphics.RenderEffect
+import android.graphics.Shader
+import android.os.Build
 import android.os.Bundle
 import android.os.UserHandle
 import android.os.VibrationEffect
@@ -26,6 +29,11 @@ import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
 import android.view.animation.ScaleAnimation
+import android.widget.ImageView
+import android.widget.LinearLayout
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
 import com.github.kyuubiran.ezxhelper.utils.argTypes
 import com.github.kyuubiran.ezxhelper.utils.args
 import com.github.kyuubiran.ezxhelper.utils.invokeMethod

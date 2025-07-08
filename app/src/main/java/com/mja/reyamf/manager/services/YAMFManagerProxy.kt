@@ -101,4 +101,8 @@ object YAMFManagerProxy : IYAMFManager, DeathRecipient {
     override fun getAppIcon(callback: IAppIconCallback, appInfo: AppInfo) {
         service?.getAppIcon(callback, appInfo)
     }
+
+    override fun collapseStatusBarPanel() {
+        service?.collapseStatusBarPanel()
+    }
 }

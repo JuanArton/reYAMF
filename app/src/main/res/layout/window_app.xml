@@ -129,6 +129,7 @@
                 android:id="@+id/background"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="?attr/colorSurface"
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
@@ -136,7 +137,7 @@
                     android:id="@+id/viewSurface"
                     android:layout_width="0dp"
                     android:layout_height="0dp"
-                    app:layout_constraintBottom_toTopOf="@id/rl_top"
+                    app:layout_constraintBottom_toTopOf="@+id/ibSuper"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
@@ -145,7 +146,7 @@
                     android:id="@+id/viewTexture"
                     android:layout_width="0dp"
                     android:layout_height="0dp"
-                    app:layout_constraintBottom_toTopOf="@id/rl_top"
+                    app:layout_constraintBottom_toTopOf="@+id/ibSuper"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
@@ -157,133 +158,165 @@
                     android:background="@drawable/a_bg"
                     android:elevation="5dp"
                     android:visibility="invisible"
+                    app:layout_constraintBottom_toTopOf="@+id/ibSuper"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <LinearLayout
-                    android:id="@+id/rl_top"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:background="?attr/colorSurface"
-                    android:paddingHorizontal="6dp"
-                    android:weightSum="3"
-                    android:clipChildren="false"
-                    android:clipToPadding="false"
-                    android:orientation="horizontal"
-                    android:gravity="center"
+                <ImageButton
+                    android:id="@+id/ibSuper"
+                    android:layout_width="wrap_content"
+                    android:layout_height="20dp"
+                    android:background="@null"
+                    android:src="@drawable/three_dot_horiz"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent">
+                    app:layout_constraintStart_toStartOf="parent" />
 
-                    <ImageButton
-                        android:id="@+id/ib_close"
-                        android:layout_width="match_parent"
-                        android:layout_height="35dp"
-                        android:layout_weight="1"
-                        android:background="?android:attr/selectableItemBackground"
-                        android:contentDescription="@string/close_desc"
-                        android:src="@drawable/ic_close"
-                        android:visibility="invisible"
-                        app:layout_constraintStart_toStartOf="parent" />
-
-                    <ImageButton
-                        android:id="@+id/ibSuper"
-                        android:layout_width="match_parent"
-                        android:layout_height="35dp"
-                        android:background="@android:color/transparent"
-                        android:contentDescription="@string/super_description"
-                        android:visibility="invisible"
-                        android:src="@drawable/three_dot_horiz"
-                        android:layout_weight="1" />
-
-                    <ImageButton
-                        android:id="@+id/ib_back"
-                        android:layout_width="match_parent"
-                        android:layout_height="35dp"
-                        android:layout_weight="1"
-                        android:background="?android:attr/selectableItemBackground"
-                        android:contentDescription="@string/back_desc"
-                        android:padding="4dp"
-                        android:src="@drawable/ic_back"
-                        android:visibility="invisible"
-                        app:layout_constraintEnd_toEndOf="parent" />
-                </LinearLayout>
-
-<!--                <View-->
-<!--                    android:id="@+id/viewBackGestureBuffer"-->
-<!--                    android:layout_width="0dp"-->
-<!--                    android:layout_height="0dp"-->
-<!--                    android:visibility="gone"-->
-<!--                    android:elevation="10dp"-->
-<!--                    android:translationZ="10dp"-->
-<!--                    app:layout_constraintBottom_toBottomOf="@+id/viewTexture"-->
-<!--                    app:layout_constraintEnd_toEndOf="parent"-->
-<!--                    app:layout_constraintStart_toStartOf="parent"-->
-<!--                    app:layout_constraintTop_toTopOf="parent" />-->
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cvSuper"
-                    android:layout_width="180dp"
-                    android:layout_height="39dp"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/clSuperLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:background="?attr/colorSurface"
+                    android:orientation="vertical"
                     android:visibility="invisible"
-                    android:layout_marginBottom="1dp"
-                    android:paddingHorizontal="10dp"
-                    app:cardElevation="8dp"
-                    app:cardCornerRadius="20dp"
-                    app:cardBackgroundColor="?attr/colorSurface"
+                    android:weightSum="2"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:strokeColor="@color/accentColor"
-                    app:strokeWidth="0dp">
+                    app:layout_constraintTop_toTopOf="parent">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:weightSum="3">
+                    <ImageButton
+                        android:id="@+id/ib_superClose"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginEnd="20dp"
+                        android:layout_weight="1"
+                        android:background="?android:attr/selectableItemBackground"
+                        android:contentDescription="@string/minimize_desc"
+                        android:src="@drawable/ic_close_24"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
 
-                        <ImageButton
-                            android:id="@+id/ib_minimize"
-                            android:layout_width="match_parent"
-                            android:layout_height="39dp"
-                            android:layout_weight="1"
-                            android:background="?android:attr/selectableItemBackground"
-                            android:contentDescription="@string/minimize_desc"
-                            android:padding="4dp"
-                            android:src="@drawable/ic_minimize"
-                            android:visibility="invisible"
-                            app:layout_constraintBottom_toBottomOf="parent"
+                    <androidx.constraintlayout.widget.ConstraintLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <LinearLayout
+                            android:id="@+id/linearLayout4"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="20dp"
+                            android:layout_marginBottom="20dp"
+                            android:gravity="center"
+                            android:orientation="vertical"
                             app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent" />
+                            app:layout_constraintTop_toTopOf="parent">
 
-                        <ImageButton
-                            android:id="@+id/ib_fullscreen"
-                            android:layout_width="match_parent"
-                            android:layout_height="39dp"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
-                            android:background="?android:attr/selectableItemBackground"
-                            android:contentDescription="@string/fullscreen_desc"
-                            android:padding="4dp"
-                            android:src="@drawable/ic_maximize"
-                            android:visibility="invisible"
-                            app:layout_constraintEnd_toStartOf="@+id/ib_minimize" />
+                            <ImageButton
+                                android:id="@+id/ib_minimize"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:background="?android:attr/selectableItemBackground"
+                                android:contentDescription="@string/minimize_desc"
+                                android:src="@drawable/ic_minimize" />
 
-                        <ImageButton
-                            android:id="@+id/ib_collapse"
-                            android:layout_width="match_parent"
-                            android:layout_height="39dp"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
-                            android:background="?android:attr/selectableItemBackground"
-                            android:contentDescription="@string/fullscreen_desc"
-                            android:padding="4dp"
-                            android:src="@drawable/ic_collapse"
-                            android:visibility="invisible"
-                            app:layout_constraintEnd_toStartOf="@+id/ib_minimize" />
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/minimize" />
+                        </LinearLayout>
 
+                        <LinearLayout
+                            android:id="@+id/linearLayout5"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="20dp"
+                            android:layout_marginBottom="20dp"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            app:layout_constraintStart_toEndOf="@+id/linearLayout4"
+                            app:layout_constraintTop_toTopOf="parent">
+
+                            <ImageButton
+                                android:id="@+id/ib_fullscreen"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:background="?android:attr/selectableItemBackground"
+                                android:contentDescription="@string/fullscreen_desc"
+                                android:src="@drawable/ic_maximize" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/fullscreen" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/linearLayout7"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:layout_marginEnd="20dp"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toStartOf="@+id/linearLayout5"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toBottomOf="@+id/linearLayout4">
+
+                            <ImageButton
+                                android:id="@+id/ib_collapse"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:background="?android:attr/selectableItemBackground"
+                                android:contentDescription="@string/fullscreen_desc"
+                                android:src="@drawable/ic_collapse" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/collapse" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="20dp"
+                            android:layout_marginTop="20dp"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toEndOf="@+id/linearLayout4"
+                            app:layout_constraintTop_toBottomOf="@+id/linearLayout5">
+
+                            <ImageButton
+                                android:id="@+id/ib_close"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"
+                                android:background="?android:attr/selectableItemBackground"
+                                android:contentDescription="@string/close_desc"
+                                android:src="@drawable/ic_close" />
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="@string/close" />
+                        </LinearLayout>
+                    </androidx.constraintlayout.widget.ConstraintLayout>
+                </androidx.constraintlayout.widget.ConstraintLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
     </com.google.android.material.card.MaterialCardView>

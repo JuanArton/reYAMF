@@ -65,4 +65,8 @@
     <string name="animation_speed">Animation Speed</string>
     <string name="default_speed">Default</string>
     <string name="_300">300</string>
+    <string name="minimize">Minimize</string>
+    <string name="fullscreen">Fullscreen</string>
+    <string name="collapse">Collapse</string>
+    <string name="close">Close</string>
 </resources>

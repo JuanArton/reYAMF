@@ -304,6 +304,12 @@ object YAMFManager : IYAMFManager.Stub() {
         }
     }
 
+    override fun collapseStatusBarPanel() {
+        runMain {
+            Instances.iStatusBarService.collapsePanels()
+        }
+    }
+
     private val OpenInYAMFBroadcastReceiver: BroadcastReceiver.(Context, Intent) -> Unit =
         { _: Context, intent: Intent ->
             val taskId = intent.getIntExtra(EXTRA_TASK_ID, 0)

@@ -13,6 +13,8 @@ import android.content.pm.IPackageManagerHidden
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.PixelFormat
 import android.graphics.SurfaceTexture
 import android.graphics.drawable.BitmapDrawable
@@ -78,6 +80,8 @@ import kotlin.math.floor
 import kotlin.math.pow
 import kotlin.math.sign
 import kotlin.math.sqrt
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.drawable.toDrawable
 
 
 @SuppressLint("ClickableViewAccessibility", "SetTextI18n")
@@ -128,6 +132,9 @@ class AppWindow(
     private var params = WindowManager.LayoutParams()
     private var paramsBg = WindowManager.LayoutParams()
     private var backGestureJob: Job? = null
+    private var lastClickTime = 0L
+    private val DOUBLE_CLICK_TIME_DELTA: Long = 300
+    private var isSuperShown = false
 
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -241,6 +248,7 @@ class AppWindow(
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT
             )
+            paramsBgR.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
             paramsBgR.gravity = Gravity.END or Gravity.TOP
             Instances.windowManager.addView(bindingRightBackGesture.root, paramsBgR)
         }
@@ -255,100 +263,140 @@ class AppWindow(
             true
         }
 
-        binding.cvBarSideClickMask.setOnTouchListener { _, event ->
-            moveGestureDetector.onTouchEvent(event)
-            moveToTopIfNeed(event)
-            true
+        binding.cvBarClickMask.setOnClickListener {
+            val clickTime = System.currentTimeMillis()
+            if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                isResize = false
+                backGestureJob?.cancel()
+                backGestureJob = null
+
+                binding.cvappIcon.visibility = View.INVISIBLE
+                if (orientation == 0) {
+                    animateAlpha(binding.rlBarControllerBottom, 1f, 0f) {
+                        binding.rlBarControllerBottom.visibility = View.GONE
+                    }
+                } else {
+                    animateAlpha(binding.rlBarControllerSide, 1f, 0f) {
+                        binding.rlBarControllerSide.visibility = View.GONE
+                    }
+                }
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    delay(200)
+
+                    withContext(Dispatchers.Main) {
+                        animateScaleThenResize(
+                            binding.cvParent,
+                            1F, 1F,
+                            0F, 0F,
+                            0.5F, 0.5F,
+                            0, 0,
+                            context
+                        ) {
+                            onDestroy()
+                        }
+                    }
+                }
+            }
+            lastClickTime = clickTime
+        }
+
+        binding.cvBarSideClickMask.setOnClickListener {
+            val clickTime = System.currentTimeMillis()
+            if (clickTime - lastClickTime < DOUBLE_CLICK_TIME_DELTA) {
+                isResize = false
+                backGestureJob?.cancel()
+                backGestureJob = null
+
+                binding.cvappIcon.visibility = View.INVISIBLE
+                if (orientation == 0) {
+                    animateAlpha(binding.rlBarControllerBottom, 1f, 0f) {
+                        binding.rlBarControllerBottom.visibility = View.GONE
+                    }
+                } else {
+                    animateAlpha(binding.rlBarControllerSide, 1f, 0f) {
+                        binding.rlBarControllerSide.visibility = View.GONE
+                    }
+                }
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    delay(200)
+
+                    withContext(Dispatchers.Main) {
+                        animateScaleThenResize(
+                            binding.cvParent,
+                            1F, 1F,
+                            0F, 0F,
+                            0.5F, 0.5F,
+                            0, 0,
+                            context
+                        ) {
+                            onDestroy()
+                        }
+                    }
+                }
+            }
+            lastClickTime = clickTime
+        }
+
+        binding.ibSuper.setOnClickListener {
+            isSuperShown = true
+            animateAlpha(binding.clSuperLayout, 0f, 1f)
         }
 
         binding.cvBarClickMask.setOnTouchListener { _, event ->
             moveGestureDetector.onTouchEvent(event)
             moveToTopIfNeed(event)
-            true
+            false
+        }
+
+        binding.cvBarSideClickMask.setOnTouchListener { _, event ->
+            moveGestureDetector.onTouchEvent(event)
+            moveToTopIfNeed(event)
+            false
         }
 
         rightResize(binding.ibRightResize)
 
         surfaceView.setOnTouchListener(surfaceOnTouchListener)
         surfaceView.setOnGenericMotionListener(surfaceOnGenericMotionListener)
-        binding.ibBack.setOnClickListener {
-            val down = KeyEvent(
-                SystemClock.uptimeMillis(),
-                SystemClock.uptimeMillis(),
-                KeyEvent.ACTION_DOWN,
-                KeyEvent.KEYCODE_BACK,
-                0
-            ).apply {
-                source = InputDevice.SOURCE_KEYBOARD
-                this.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
-            }
-            Instances.inputManager.injectInputEvent(down, 0)
-            val up = KeyEvent(
-                SystemClock.uptimeMillis(),
-                SystemClock.uptimeMillis(),
-                KeyEvent.ACTION_UP,
-                KeyEvent.KEYCODE_BACK,
-                0
-            ).apply {
-                source = InputDevice.SOURCE_KEYBOARD
-                this.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
-            }
-            Instances.inputManager.injectInputEvent(up, 0)
-        }
-        binding.ibBack.setOnLongClickListener {
-            val down = KeyEvent(
-                SystemClock.uptimeMillis(),
-                SystemClock.uptimeMillis(),
-                KeyEvent.ACTION_DOWN,
-                KeyEvent.KEYCODE_HOME,
-                0
-            ).apply {
-                source = InputDevice.SOURCE_KEYBOARD
-                this.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
-            }
-            Instances.inputManager.injectInputEvent(down, 0)
-            val up = KeyEvent(
-                SystemClock.uptimeMillis(),
-                SystemClock.uptimeMillis(),
-                KeyEvent.ACTION_UP,
-                KeyEvent.KEYCODE_HOME,
-                0
-            ).apply {
-                source = InputDevice.SOURCE_KEYBOARD
-                this.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
-            }
-            Instances.inputManager.injectInputEvent(up, 0)
-            true
-        }
+
         binding.ibClose.setOnClickListener {
             isResize = false
+            backGestureJob?.cancel()
+            backGestureJob = null
 
             binding.cvappIcon.visibility = View.INVISIBLE
-            animateAlpha(binding.ibClose, 1f, 0f)
-            animateAlpha(binding.ibBack, 1f, 0f)
-            animateAlpha(binding.ibSuper, 1f, 0f)
             if (orientation == 0) {
-                animateAlpha(binding.rlBarControllerBottom, 1f, 0f)
+                animateAlpha(binding.rlBarControllerBottom, 1f, 0f) {
+                    binding.rlBarControllerBottom.visibility = View.GONE
+                }
             } else {
-                animateAlpha(binding.rlBarControllerSide, 1f, 0f)
+                animateAlpha(binding.rlBarControllerSide, 1f, 0f) {
+                    binding.rlBarControllerSide.visibility = View.GONE
+                }
             }
 
-            CoroutineScope(Dispatchers.Main).launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 delay(200)
 
-                animateScaleThenResize(
-                    binding.cvParent,
-                    1F, 1F,
-                    0F, 0F,
-                    0.5F, 0.5F,
-                    0, 0,
-                    context
-                ) {
-                    onDestroy()
+                withContext(Dispatchers.Main) {
+                    animateScaleThenResize(
+                        binding.cvParent,
+                        1F, 1F,
+                        0F, 0F,
+                        0.5F, 0.5F,
+                        0, 0,
+                        context
+                    ) {
+                        onDestroy()
+                    }
                 }
             }
         }
+
         binding.ibFullscreen.setOnClickListener {
+            animateAlpha(binding.clSuperLayout, 1f, 0f)
             getTopRootTask()?.runCatching {
                 Instances.activityTaskManager.moveRootTaskToDisplay(taskId, 0)
             }?.onFailure { t ->
@@ -358,68 +406,29 @@ class AppWindow(
                 binding.ibClose.callOnClick()
             }
         }
-        binding.ibMinimize.setOnClickListener {
-            binding.apply {
-                ibSuper.visibility = View.VISIBLE
-                cvSuper.visibility = View.INVISIBLE
-                ibMinimize.visibility = View.INVISIBLE
-                ibFullscreen.visibility = View.INVISIBLE
-                ibCollapse.visibility = View.INVISIBLE
 
-                animateScaleThenResize(
-                    cvSuper,
-                    1F, 1F,
-                    0F, 1F,
-                    0.5F, 0.5F,
-                    0, 39.dpToPx().toInt(),
-                    context
-                ) {
-                    changeMini()
-                }
+        binding.ibMinimize.setOnClickListener {
+            isSuperShown = false
+            binding.apply {
+                animateAlpha(binding.clSuperLayout, 1f, 0f)
+                binding.clSuperLayout.visibility = View.GONE
+                changeMini()
             }
         }
 
         binding.ibCollapse.setOnClickListener {
+            isSuperShown = false
             binding.apply {
-                ibSuper.visibility = View.VISIBLE
-                cvSuper.visibility = View.INVISIBLE
-
-                ibMinimize.visibility = View.INVISIBLE
-                ibFullscreen.visibility = View.INVISIBLE
-                ibCollapse.visibility = View.INVISIBLE
-
-                animateScaleThenResize(
-                    cvSuper,
-                    1F, 1F,
-                    0F, 1F,
-                    0.5F, 0.5F,
-                    0, 39.dpToPx().toInt(),
-                    context
-                ) {
-                    changeCollapsed()
-                }
+                animateAlpha(binding.clSuperLayout, 1f, 0f)
+                binding.clSuperLayout.visibility = View.GONE
+                changeCollapsed()
             }
             true
         }
 
-        binding.ibSuper.setOnClickListener {
-            binding.apply {
-                ibSuper.visibility = View.INVISIBLE
-                cvSuper.visibility = View.VISIBLE
-
-                animateScaleThenResize(
-                    cvSuper,
-                    0F, 1F,
-                    1F, 1F,
-                    0.5F, 0.5F,
-                    150.dpToPx().toInt(), 39.dpToPx().toInt(),
-                    context
-                ) {
-                    ibMinimize.visibility = View.VISIBLE
-                    ibFullscreen.visibility = View.VISIBLE
-                    ibCollapse.visibility = View.VISIBLE
-                }
-            }
+        binding.ibSuperClose.setOnClickListener {
+            isSuperShown = false
+            animateAlpha(binding.clSuperLayout, 1f, 0f)
         }
 
         virtualDisplay = Instances.displayManager.createVirtualDisplay(
@@ -482,9 +491,6 @@ class AppWindow(
                 CoroutineScope(Dispatchers.Main).launch {
                     delay(200)
 
-                    animateAlpha(binding.ibClose, 0f, 1f)
-                    animateAlpha(binding.ibBack, 0f, 1f)
-                    animateAlpha(binding.ibSuper, 0f, 1f)
                     binding.cvParent.strokeWidth = 2.dpToPx().toInt()
                 }
 
@@ -511,14 +517,22 @@ class AppWindow(
                         bindingRightBackGesture.root.visibility = View.GONE
                     }
                 }
+
+                if (!isMini && !isCollapsed) {
+                    withContext(Dispatchers.Main) {
+                        if (orientation == 0) {
+                            binding.rlBarControllerBottom.visibility = View.VISIBLE
+                        } else {
+                            binding.rlBarControllerSide.visibility = View.VISIBLE
+                        }
+                    }
+                }
                 delay(500)
             }
         }
     }
 
     private fun onDestroy() {
-        backGestureJob?.cancel()
-        backGestureJob = null
         context.unregisterReceiver(broadcastReceiver)
         Instances.iWindowManager.removeRotationWatcher(rotationWatcher)
         Instances.activityTaskManager.unregisterTaskStackListener(taskStackListener)
@@ -601,8 +615,6 @@ class AppWindow(
             }
 
             if (config.coloredController) {
-                binding.rlTop.setBackgroundColor(backgroundColor)
-
                 val onStateBar = if (MaterialColors.isColorLight(ColorUtils.compositeColors(statusBarColor, backgroundColor)) xor ((context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES)) {
                     context.theme.getAttr(com.google.android.material.R.attr.colorOnPrimaryContainer).data
                 } else {
@@ -618,7 +630,6 @@ class AppWindow(
                     context.theme.getAttr(com.google.android.material.R.attr.colorOnPrimary).data
                 }
 
-                binding.ibBack.imageTintList = ColorStateList.valueOf(onNavigationBar)
                 binding.ibMinimize.imageTintList = ColorStateList.valueOf(onNavigationBar)
                 binding.ibFullscreen.imageTintList = ColorStateList.valueOf(onNavigationBar)
                 binding.ibRightResize.imageTintList = ColorStateList.valueOf(onNavigationBar)
@@ -629,7 +640,6 @@ class AppWindow(
     fun onTaskMovedToFront(taskInfo: ActivityManager.RunningTaskInfo) {
         if (taskInfo.getObject("displayId") == displayId) {
             updateTask(taskInfo)
-            Log.d("test2", taskInfo.toString())
         }
     }
 
@@ -752,7 +762,6 @@ class AppWindow(
                 }
             }
 
-            binding.rlTop.visibility = View.VISIBLE
             binding.ibRightResize.visibility = View.VISIBLE
             if (orientation == 0) {
                 binding.rlBarControllerBottom.visibility = View.VISIBLE
@@ -789,7 +798,6 @@ class AppWindow(
                 }
             }
 
-            binding.rlTop.visibility = View.GONE
             binding.ibRightResize.visibility = View.GONE
             surfaceView.setOnTouchListener(null)
             surfaceView.setOnGenericMotionListener(null)
@@ -844,9 +852,6 @@ class AppWindow(
                 CoroutineScope(Dispatchers.Main).launch {
                     delay(200)
 
-                    animateAlpha(binding.ibClose, 0f, 1f)
-                    animateAlpha(binding.ibBack, 0f, 1f)
-                    animateAlpha(binding.ibSuper, 0f, 1f)
                     if (orientation == 0) {
                         binding.rlBarControllerBottom.visibility = View.VISIBLE
                     } else {
@@ -862,10 +867,6 @@ class AppWindow(
 
     private fun collapseWindow() {
         isCollapsed = true
-
-        animateAlpha(binding.ibClose, 1f, 0f)
-        animateAlpha(binding.ibBack, 1f, 0f)
-        animateAlpha(binding.ibSuper, 1f, 0f)
 
         CoroutineScope(Dispatchers.Main).launch {
             delay(200)
@@ -948,10 +949,12 @@ class AppWindow(
     }
 
     fun forwardMotionEvent(event: MotionEvent) {
-        val newEvent = MotionEvent.obtain(event)
-        newEvent.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
-        Instances.inputManager.injectInputEvent(newEvent, 0)
-        newEvent.recycle()
+        if (!isSuperShown) {
+            val newEvent = MotionEvent.obtain(event)
+            newEvent.invokeMethod("setDisplayId", args(displayId), argTypes(Integer.TYPE))
+            Instances.inputManager.injectInputEvent(newEvent, 0)
+            newEvent.recycle()
+        }
     }
 
     inner class SurfaceOnTouchListener : View.OnTouchListener {
@@ -968,7 +971,6 @@ class AppWindow(
         override fun onGenericMotion(v: View, event: MotionEvent): Boolean {
             bindingLeftBackGesture.root.visibility = View.VISIBLE
             bindingRightBackGesture.root.visibility = View.VISIBLE
-//            binding.viewBackGestureBuffer.visibility = View.GONE
             forwardMotionEvent(event)
             return true
         }

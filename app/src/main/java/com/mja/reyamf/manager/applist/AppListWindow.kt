@@ -5,6 +5,9 @@ import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
 import android.os.IBinder
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +17,7 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
+import androidx.core.widget.doOnTextChanged
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -24,17 +28,23 @@ import com.mja.reyamf.manager.adapter.AppListAdapter
 import com.mja.reyamf.manager.core.domain.repository.IReyamfRepository
 import com.mja.reyamf.manager.services.YAMFManagerProxy
 import com.mja.reyamf.xposed.IAppListCallback
+import com.mja.reyamf.xposed.utils.AppInfoCache
 import com.mja.reyamf.xposed.utils.animateScaleThenResize
+import com.mja.reyamf.xposed.utils.log
 import com.mja.reyamf.xposed.utils.vibratePhone
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import javax.inject.Inject
 import kotlin.collections.sortedBy
+import kotlin.time.Duration.Companion.milliseconds
 
 @AndroidEntryPoint
 class AppListWindow :  LifecycleService() {
@@ -160,10 +170,38 @@ class AppListWindow :  LifecycleService() {
                                                 .lowercase(Locale.ROOT)
                                         }
                                         .toMutableList()
-
                                 } else {
                                     showApps.clear()
                                 }
+
+                                binding.etSearch.addTextChangedListener(object : TextWatcher {
+                                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+                                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                                        searchJob?.cancel()
+                                        searchJob = scope.launch {
+                                            delay(300)
+                                            val query = s.toString().lowercase(Locale.ROOT)
+
+                                            val filteredApps = if (query.isEmpty()) {
+                                                showApps
+                                            } else {
+                                                showApps.filter {
+                                                    it.activityInfo.loadLabel(packageManager).toString()
+                                                        .lowercase(Locale.ROOT)
+                                                        .contains(query)
+                                                }
+                                            }
+
+                                            withContext(Dispatchers.Main) {
+                                                rvAdapter.setData(filteredApps)
+                                                rvAdapter.notifyDataSetChanged()
+                                            }
+                                        }
+                                    }
+
+                                    override fun afterTextChanged(s: Editable?) {}
+                                })
 
                                 binding.btnUser.setOnClickListener {
                                     val themedContext = ContextThemeWrapper(this@AppListWindow, androidx.appcompat.R.style.Theme_AppCompat)
@@ -234,5 +272,12 @@ class AppListWindow :  LifecycleService() {
 
     private fun close() {
         stopSelf()
+    }
+
+    override fun onDestroy() {
+        searchJob?.cancel()
+        windowManager.removeView(binding.root)
+        scope.cancel()
+        super.onDestroy()
     }
 }

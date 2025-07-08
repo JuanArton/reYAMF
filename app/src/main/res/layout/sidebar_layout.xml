@@ -21,7 +21,7 @@
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cvSideBar"
-        android:layout_width="3dp"
+        android:layout_width="3.5dp"
         android:layout_height="75dp"
         android:layout_marginStart="5dp"
         app:cardBackgroundColor="?attr/colorSurface"
@@ -29,5 +29,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:strokeColor="@color/transparentOutline"
-        app:strokeWidth="1dp"/>
+        app:strokeWidth="0dp"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

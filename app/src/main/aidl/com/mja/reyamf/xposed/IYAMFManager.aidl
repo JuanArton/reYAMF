@@ -37,4 +37,6 @@ interface IYAMFManager {
     void getAppListAsync(IAppListCallback callback);
 
     void getAppIcon(IAppIconCallback callback, in AppInfo appInfo);
+
+    void collapseStatusBarPanel();
 }
