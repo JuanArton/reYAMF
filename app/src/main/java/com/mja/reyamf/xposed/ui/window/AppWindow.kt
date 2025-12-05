@@ -109,6 +109,9 @@ class AppWindow(
                 "onTaskDescriptionChanged" -> {
                     onTaskDescriptionChanged(args[0] as ActivityManager.RunningTaskInfo)
                 }
+                "onTaskRemovalStarted" -> {
+                    onDestroy()
+                }
             }
         }
     private val rotationWatcher = RotationWatcher()

@@ -218,12 +218,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchSidebar(action: String) {
-        Intent(this, SidebarService::class.java).also {
-            it.action = action
-            Log.d("reYAMF", "Starting the service in >=26 Mode from a BroadcastReceiver")
-            this.startForegroundService(it)
-            return
-        }
+        startService(Intent(this, SidebarService::class.java))
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

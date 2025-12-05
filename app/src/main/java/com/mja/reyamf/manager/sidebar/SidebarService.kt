@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
+import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Display
@@ -60,25 +62,13 @@ class SidebarService : Service() {
         return null
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
+    override fun onCreate() {
+        super.onCreate()
 
-        if (intent != null) {
-            when (intent.action) {
-                Action.START.name -> {
-                    if (!isServiceRunning) {
-                        isServiceRunning = true
-                        config = gson.fromJson(YAMFManagerProxy.configJson, YAMFConfig::class.java)
-                        if (config.enableSidebar) initSidebar()
-                    }
-                }
-                Action.STOP.name -> stopService()
-                else -> Log.d("reYAMF", "No action in received intent")
-            }
-        } else {
-            Log.d("reYAMF", "Null intent")
+        if (!isServiceRunning) {
+            isServiceRunning = true
+            initSidebar()
         }
-        return START_STICKY
     }
 
     private fun initSidebar() {
@@ -131,7 +121,20 @@ class SidebarService : Service() {
         handleSidebar()
 
         setServiceState(this, ServiceState.STARTED)
-        startForeground(SERVICE_NOTIFICATION_ID, createNotification())
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+//            // Android 14 / API 34 ke atas, wajib serviceType
+//            startForeground(
+//                SERVICE_NOTIFICATION_ID,
+//                createNotification(),
+//                ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED
+//            )
+//        } else {
+//            // Android 13 ke bawah, cukup notification saja
+//            startForeground(
+//                SERVICE_NOTIFICATION_ID,
+//                createNotification()
+//            )
+//        }
     }
 
     private fun handleSidebar() {

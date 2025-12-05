@@ -200,11 +200,6 @@ class SidebarMenuService() : LifecycleService() {
             try {
                 windowManager.removeView(binding.root)
                 stopSelf()
-                Intent(this, SidebarService::class.java).also {
-                    it.action = Action.STOP.name
-                    Log.d("reYAMF", "Starting the service in >=26 Mode from a BroadcastReceiver")
-                    this.startForegroundService(it)
-                }
             } catch (e: Exception) {
                 Log.d("reYAMF", "Sidebar killed")
             }
@@ -347,12 +342,7 @@ class SidebarMenuService() : LifecycleService() {
         try {
             windowManager.removeView(binding.root)
             stopSelf()
-            Intent(this, SidebarService::class.java).also {
-                it.action = Action.START.name
-                Log.d("reYAMF", "Starting the service in >=26 Mode from a BroadcastReceiver")
-                this.startForegroundService(it)
-                return
-            }
+            startService(Intent(this, SidebarService::class.java))
         } catch (e: Exception) {
             Log.d("reYAMF", "Sidebar killed")
         }

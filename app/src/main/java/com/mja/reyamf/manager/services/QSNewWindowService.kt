@@ -9,8 +9,8 @@ class QSNewWindowService : TileService() {
     override fun onClick() {
         super.onClick()
         if (PreferenceManager.getDefaultSharedPreferences(this).getBoolean("useAppList", true)) {
-            startService(Intent(this, AppListWindow::class.java))
             YAMFManagerProxy.collapseStatusBarPanel()
+            startService(Intent(this, AppListWindow::class.java))
         }
         else YAMFManagerProxy.createWindow()
     }
